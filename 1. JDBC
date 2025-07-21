@@ -18,6 +18,11 @@ DB 교체 시 관련 코드를 모두 수정해야 하며, 개발자가 매번 �
 JDBC : JAVA Database Connectivity, 자바에서 DB에 접속하는 방법을 규정하는 자바 API
 
 
+JDBC 표준 인터페이스
+- java.sql.Connection : 연결
+- java.sql.Statement : DB에 전달할 SQL을 담은 내용
+- java.sql.ResultSet : DB에서 응답하는 SQL 결과 내용
+
 JDBC 등장 이후 서버 to DB 
 1 : 커넥션 연결 - WAS가 연결 통로를 생성한다, JDBC 표준 인터페이스에 맞추어 DB에 연결한다.
 2 : SQL 전달 - JDBC의 표준 인터페이스에 맞추어 SQL을 전달한다.
@@ -26,15 +31,15 @@ JDBC 등장 이후 서버 to DB
 
 JDBC라는 표준이 등장하며 DB 교체 시 관련 코드를 모두 수정할 필요가 없어졌다.
 
-JDBC 표준 스펙
-java.sql.Connection : 연결 방식을 제공하는 표준 인터페이스
-java.sql.Statement : SQL 전달 방식을 제공하는 표준 인터페이스
-java.sql.ResultSet : SQL 요청에 대해 DB가 응답하는 방식을 제공하는 표준 인터페이스
+JDBC 표준 인터페이스 구현체
+- MySQl 드라이버, Oracle 드라이버, H2 드라이버 ... 
+=> JDBC 표준 인터페이스를 각 DB에 맞게 구현한 것을 JDBC'드라이버' 라고 한다.
 
-
-*JDBC 드라이버 : 각각의 DB가 JDBC 표준 인터페이스에 맞게 작동하도록 구현한 라이브러리
+JDBC 드라이버 : 각각의 DB가 JDBC 표준 인터페이스에 맞게 작동하도록 구현한 라이브러리
 MySQL DB가 JDBC 표준으로 작동하기 위해서는 MySQL JDBC 드라이버를 구현해야 하고, 
 Oracle이 JDBC 표준으로 작동하기 위해서는 Oracle JDBC 드라이버가 필요하다.
+
+JDBC 인터페이스와 구현체 드라이버의 등장에도 한계점 : SQL이 DB마다 조금씩 다르다.
 
 
 이후 기술 개발로 인해 JDBC를 직접 사용하지 않고 JDBC를 편리하게 사용할 수 있는 기술들이 등장하였다.
@@ -61,8 +66,11 @@ import static hello.jdbc.connection.ConnectionConst.*;
 public class DBConnectionUtil {
     public static Connection getConnection(){
         try{
+            //Connection : JDBC 표준 인터페이스가 제공하는 Connection, Statement, ResultSet에서의 Connection
             Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
-            //log.info("get connection = {}, class = {}", connection, connection.getClass());
+
+            log.info("get connection = {}, class = {}", connection, connection.getClass());
+
             return connection;
         } catch (SQLException e) {
             throw new IllegalStateException(e);//체크 예외를 런타임 예외로 변경하여 throw
@@ -74,16 +82,23 @@ public class DBConnectionUtil {
 Connection getConnection() Test
 @Test
 void connection(){
+
+    //커넥션 획득 테스트
     Connection connection = DBConnectionUtil.getConnection();
     assertThat(connection).isNotNull(); // null이면 테스트 실패, null이 아니면 테스트 성공
 }
 
+
 =>H2 DB를 실행한 뒤 테스트를 실행하면 connection 내부가 null이 아닌 것을 확인할 수 있다 : 내부에 connection이 들어와있다.
-getConnection()의 로그를 확인하면 아래와 같이 출력된다.
-DBConncectionUtil - get connection=conn0: url = jdbc:h2:tcp://localhost/~/test user=SA, class=class org.h2.jdbc.JdbcConnection
-- get connection = conn0
-- url = jdbc:h2:tcp://localhost/~/test user=SA
-- class = class org.h2.jdbc.JdbcConnection
+
+log.info("get connection = {}, class = {}", connection, connection.getClass());
+=> DBConncectionUtil - get connection=conn0: url = jdbc:h2:tcp://localhost/~/test user=SA, class=class org.h2.jdbc.JdbcConnection
+
+get connection=conn0: url = jdbc:h2:tcp://localhost/~/test user=SA 
+=> url과 user 이름이 출력된다.
+class=class org.h2.jdbc.JdbcConnection
+=> h2 데이터베이스 드라이버가 제공하는 H2 전용 커넥션이 출력된다.
+
 
 
 DBConnectionUtil 클래스의 getConnection 메서드는 아래와 같은 커넥션을 사용한다.(DBConnectionUtil.getConnection() 이용 시)
@@ -96,9 +111,10 @@ DriverManager은 .getConnection을 통해 현재 설정된(build.gradle 확인) 
 
 
 DriverManager.getConnection(URL, USERNAME, PASSWORD)의 동작 순서
-1 : 현재 설정된 데이터베이스를 확인하여 (build.gradle) 해당 DB의 드라이버를 찾는다. (MySQL 드라이버, H2 드라이버 ..)
-2 : 해당 DB의 드라이버가 제공하는 커넥션을 조회한다. 
-3 : 조회한 커넥션을 조회하면 해당 커넥션을 애플리케이션 로직에 반환한다.
+1 : 현재 설정된 데이터베이스를 확인한다.(getConnection을 통해 H2 DB의 URL, USERNAME, PASSWORD 획득) 
+2 : JDBC는 해당 DB의 드라이버를 찾는다. (MySQL 드라이버, H2 드라이버 ..)
+2 : JDBC는 해당 DB의 드라이버가 제공하는 커넥션을 조회하여 반환한다.
+3 : 반환된 커넥션을 통해 실제 데이터베이스와 커넥션을 맺는다.
 
 --------------------------------------------------------------------------------------------------------------------
 
