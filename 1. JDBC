@@ -105,10 +105,10 @@ DBConnectionUtil 클래스의 getConnection 메서드는 아래와 같은 커넥
 - Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
 
 DriverManager.getConnection(URL, USERNAME, PASSWORD)의 동작 순서
-1 : getConnection을 통해 H2 DB의 URL, USERNAME, PASSWORD을 획득, URL을 확인하여 현재 설정된 데이터베이스를 확인한다.
-2 : JDBC는 해당 DB의 드라이버를 찾는다. (MySQL 드라이버, H2 드라이버 ..)
-2 : JDBC는 해당 DB의 드라이버가 제공하는 커넥션을 조회하여 반환한다.
-3 : 반환된 커넥션을 통해 실제 데이터베이스와 커넥션을 맺는다.
+1 : getConnection의 파라미터인 URL을 확인하여 현재 설정된 데이터베이스를 확인한다.
+2 : JDBC는 해당 DB의 드라이버를 찾는다. (MySQL 드라이버, H2 드라이버 org.h2.Driver .. )
+3 : 드라이버는 TCP 소켓을 통해 H2 서버(localhost:9092 기본포트)에 연결, 인증 정보를 통해 DB 접근 권한 확인 후 커넥션을 반환
+4 : 반환된 커넥션을 통해 실제 데이터베이스와 커넥션을 맺는다.
 
 --------------------------------------------------------------------------------------------------------------------
 
