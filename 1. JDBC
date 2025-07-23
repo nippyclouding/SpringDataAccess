@@ -151,6 +151,11 @@ public class MemberRepositoryV0{ ... }
 
 * 회원 등록, 조회, 수정, 삭제 로직 구현 시 Statement 인터페이스를 상속하는 PreparedStatement 인터페이스를 사용할 예정이다.
 
+JDBC 표준 인터페이스
+- java.sql.Connection : 연결
+- java.sql.Statement : DB에 전달할 SQL을 담은 내용
+- java.sql.ResultSet : DB에서 응답하는 SQL 결과 내용
+
 1)커넥션을 안전하게 반환하는 메서드
 private void close(Connection connection, Statement statement, ResultSet resultSet){ 
 //JDBC가 제공하는 표준 인터페이스 : Connection, Statement, ResultSet 를 파라미터로 가진다.
@@ -471,7 +476,8 @@ public class MemberRepositoryV0{
     }
 }
 
-최종 코드 MemberRepositoryV0Test
+--------------------------------------------------------------------------------------------------------------------
+Test 최종 코드
 import hello.jdbc.domain.Member;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
