@@ -49,95 +49,22 @@ public interface DataSource{//핵심 기능 : 커넥션 조회
 DataSource 인터페이스 구현체 = HikariCP(커넥션 풀), DriverManagerDataSource(직접 커넥션 생성) .. 
 
 ------------------------------------------------------------------------------------------------------------------------------
-
-<DriverManagerDataSource 사용>
-
-* DriverManagerDataSource는 커넥션 풀과 다르게 매 번 커넥션을 새로 생성하여 사용한다.
-* DataSource를 상속한 DriverManagerDataSource는 .getConnection()을 사용할 때 기존의 DriverManager.getConnection()과 차이가 있다.
-//기존
-DriverManager.getConnection(URL, USERNAME, PASSWORD);
-//변경
-DriverManagerDataSource.getConnection();는 파라미터 없이 사용이 가능하다. 
-처음 객체를 생성할 때에만 파라미터를 전달하면 된다. (new DriverManagerDataSource(URL,USERNAME, PASSWORD))
-
-@Test
-void dataSourceDriverManager() throws SQLException, InterruptedException{
-    DriverManagerDataSource dataSource = new DriverManagerDataSource(URL,USERNAME, PASSWORD);
-    useDataSource(dataSource);
-}
-
-//커넥션을 두 개 생성, 사용하는 메서드
-private void useDataSource(DataSource dataSource) throws SQLException{
-    Connection connection1 = dataSource.getConnection();
-    Connection connection2 = dataSource.getConnection();
-    log.info("connection={}, class={}", connection1, connection1.getClass());
-    log.info("connection={}, class={}", connection2, connection2.getClass());
-}
-
-로그 결과 : 새로운 커넥션 두 개 생성되었다.
-Creating new JDBC DRiverManager Connection to [jdbc:h2:tcp:..test]
-Creating new JDBC DRiverManager Connection to [jdbc:h2:tcp:..test]
-connection=conn0: url=jdbc:h2:tcp://..test user=SA, class=class org.h2.jdbc.JdbcConnection
-connection=conn1: url=jdbc:h2:tcp://..test user=SA, class=class org.h2.jdbc.JdbcConnection
-
+커넥션 생성 방법 
+- DriverManage로 직접 커넥션 생성 DriverManager.getConncetion(URL, USERNAME, PASSWORD);
+- DataSource 인터페이스 이용
+  => 직접 커넥션 생성 : DataSource dataSource = new DriverManagerDataSource(URL, USERNAME, PASSWORD);  //설정
+                    Connection con = dataSource.getConnection(); //사용
+  => 커넥션 풀 생성, 커넥션 조회 : HikariDataSource dataSource = new HikariDataSource();
+                             dataSource.setJdbcUrl(URL);
+                             dataSource.setUsername(USERNAME);
+                             dataSource.setPassword(PASSWORD);
+                             dataSource.setMaximumPoolSize(10);
+                             dataSource.setPoolName("pool1");
+                             Connection con = dataSource.getConnection(); //커넥션 풀 사용, conn0, conn1 ... conn9까지 커넥션 풀에 채운다.
 
 ------------------------------------------------------------------------------------------------------------------------------
 
-<HikariDataSource 사용>
-
-@Test
-void dataSourceConnectionPool() throws SQLException, InterruptedException{
-    HikariDataSource dataSource = new HikariDataSource();
-    dataSource.setJdbcUrl(URL);
-    dataSource.setUsername(USERNAME);
-    dataSource.setPassword(PASSWORD);
-    dataSource.setMaximumPoolSize(10);
-    dataSource.setPoolName("MyPool");
-
-    useDataSource(dataSource);
-    Thread.sleep(1000);        //sleep을 해야 메인 스레드가 내부 스레드 작업이 끝난 뒤 종료된다.
-  }
-}
-
-//커넥션을 두 개 생성, 사용하는 메서드
-private void useDataSource(DataSource dataSource) throws SQLException{
-    Connection connection1 = dataSource.getConnection();
-    Connection connection2 = dataSource.getConnection();
-    log.info("connection={}, class={}", connection1, connection1.getClass());
-    log.info("connection={}, class={}", connection2, connection2.getClass());
-}
-
-* 커넥션 풀의 최대 사이즈르 10으로 설정 (dataSource.setMaximumPoolSize(10))
-* 커넥션 풀을 사용하는 인터페이스들은 내부적으로 별도의 스레드를 사용하여 커넥션을 생성, 관리한다.
-
-로그 결과 
-[MyPool connection adder] MyPool - Added connection conn0: url=jdbc:h2...user=SA
-[MyPool connection adder] MyPool - Added connection conn1: url=jdbc:h2...user=SA
-[MyPool connection adder] MyPool - Added connection conn2: url=jdbc:h2...user=SA
-[MyPool connection adder] MyPool - Added connection conn3: url=jdbc:h2...user=SA
-[MyPool connection adder] MyPool - Added connection conn4: url=jdbc:h2...user=SA
-[MyPool connection adder] MyPool - Added connection conn5: url=jdbc:h2...user=SA
-[MyPool connection adder] MyPool - Added connection conn6: url=jdbc:h2...user=SA
-[MyPool connection adder] MyPool - Added connection conn7: url=jdbc:h2...user=SA
-[MyPool connection adder] MyPool - Added connection conn8: url=jdbc:h2...user=SA
-[MyPool connection adder] MyPool - Added connection conn9: url=jdbc:h2...user=SA
-
-ConnectionTest - connection=HikariProxyConnection@..... wrapping conn0: url=jdbc:h2:tcp://localhost/~/test user=Sa, class=class
-ConnectionTest - connection=HikariProxyConnection@..... wrapping conn1: url=jdbc:h2:tcp://localhost/~/test user=Sa, class=class
-
-MyPool - After adding stats (total=10, active=2, idle=8, waiting=0)
-
-로그 결과를 보면 먼저 커넥션 풀에 커넥션을 생성하여 10개를 채운다.
-커넥션을 생성하여 10개를 채울 때 HikariCP 인터페이스는 내부적으로 스레드를 사용하여 커넥션을 생성하는데, 커넥션을 채우는 과정이 오래 걸리기 때문이다.(데몬 스레드)
-total=10, active=2, idle=8, waiting=0 
-total은 커넥션 풀 속의 커넥션 수
-active는 현재 사용되는 커넥션 수
-idle은 현재 사용되지 않는 커넥션 수
-waiting은 커넥션 풀에 커넥션이 가득 차있을 때 새로운 커넥션을 내부에 생성하여 담으려 할 때 공간이 없기에 대기 중인 커넥션 수
-
-------------------------------------------------------------------------------------------------------------------------------
-
-<HikariCP를 사용한 DB 연결>
+<최종 코드 : DataSource를 이용한 DB 연결>
 
 import hello.jdbc.domain.Member;
 import lombok.extern.slf4j.Slf4j;
@@ -150,7 +77,7 @@ public class MemberRespositoryV1 {
     private final DataSource dataSource;
 
     //생성자가 하나이기에 AutoWired 자동 적용
-    //DataSource dataSource 파라미터에 외부에서 HikariCP 타입을 주입한다.
+    //DataSource dataSource 파라미터에 외부에서(Service 계층 등) HikariCP 타입을 주입한다.
     public MemberRespositoryV1(DataSource dataSource) { 
         this.dataSource = dataSource;
     }
@@ -271,7 +198,7 @@ JdbcUtils.closeStatement(statement);
 JdbcUtils.closeConnection(connection);
 
 
-<Repository 사용>
+<Repository Test>
 
 import com.zaxxer.hikari.HikariDataSource;
 import hello.jdbc.domain.Member;
@@ -344,6 +271,7 @@ get connection=HikariProxyConnection@..... wrapping conn0: url=jdbc:h2:tcp://loc
 4 : Member updateMember = respository.findById(member.getMemberId());에서 Hikari 커넥션 풀 속의 커넥션을 재사용, findById가 종료될 때 close로 커넥션을 풀에 반납
 5 : respository.delete(member.getMemberId());에서 Hikari 커넥션 풀 속의 커넥션을 재사용, delete가 종료될 때 close로 커넥션을 풀에 반납
 6 : assertThatThrownBy(()->respository.findById(member.getMemberId())).isInstanceOf(NoSuchElementException.class);에서 Hikari 커넥션 풀 속의 커넥션을 재사용, findById가 종료될 때 close로 커넥션을 풀에 반납
+7 : HikariDataSource의 setMaximumPoolSize를 생략하면 기본적으로 10개의 커넥션이 커넥션 풀에 생성된다.
 
 Point는 Hikari 커넥션 풀 속의 커넥션을 재사용하고 리포지토리의 메서드가 종료될 때 close로 커넥션을 풀에 반납하는 것이다.
 DriverManagerDataSource를 사용하면 커넥션을 매 번 새로 생성하지만 커넥션 풀을 사용하면 커넥션을 재사용 할 수 있다.
